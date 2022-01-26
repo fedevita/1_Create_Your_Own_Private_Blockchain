@@ -1,3 +1,5 @@
 node_modules/
 .vdcode/
 package-lock.json
+production.env
+development.env
