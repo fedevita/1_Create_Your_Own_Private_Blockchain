@@ -4,7 +4,8 @@
   "description": "This project creates a Blockchain application to store data into the blocks",
   "main": "index.js",
   "scripts": {
-    "test": "echo \"Error: no test specified\" && exit 1"
+    "dev": "NODE_ENV=development nodemon app.js",
+    "prod": "NODE_ENV=production node app.js"
   },
   "author": "Udacity - jose.morales@udacity.com",
   "license": "ISC",
