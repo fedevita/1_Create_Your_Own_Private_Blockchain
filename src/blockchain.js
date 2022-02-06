@@ -94,7 +94,17 @@ class Blockchain {
    * @param {*} address
    */
   requestMessageOwnershipVerification(address) {
-    return new Promise((resolve) => {});
+    return new Promise((resolve) => {
+      try {
+        const OwnershipMessage = `${address}:${new Date()
+          .getTime()
+          .toString()
+          .slice(0, -3)}`;
+        resolve(OwnershipMessage);
+      } catch (err) {
+        reject(new Error(err));
+      }
+    });
   }
 
   /**
@@ -116,7 +126,23 @@ class Blockchain {
    */
   submitStar(address, message, signature, star) {
     let self = this;
-    return new Promise(async (resolve, reject) => {});
+    return new Promise(async (resolve, reject) => {
+      let temps = parseInt(message.split(":")[1]); //Get the time from the message sent as a parameter
+      let currentTime = parseInt(new Date().getTime().toString().slice(0, -3)); //Get the current time
+      if (currentTime - temps < 5 * 60) {
+        //Check if the time elapsed is less than 5 minutes
+        if (bitcoinMessage.verify(message, address, signature)) {
+          //If yes verify the message
+          let block = new BlockClass.Block({ owner: address, star: star }); //creation of the new block with the owner and the star
+          self._addBlock(block); //Add the block
+          resolve(block); //Resolve with the new block
+        } else {
+          reject(Error("Message is not verified")); //Error message
+        }
+      } else {
+        reject(Error("too much time has passed, stay below 5 minutes")); //Error message
+      }
+    });
   }
 
   /**
@@ -125,10 +151,22 @@ class Blockchain {
    * Search on the chain array for the block that has the hash.
    * @param {*} hash
    */
-  getBlockByHash(hash) {
+   getBlockByHash(hash) {
     let self = this;
-    return new Promise((resolve, reject) => {});
-  }
+    return new Promise((resolve, reject) => {
+        try{
+          const block = self.chain.filter(block => block.hash === hash);
+          if (typeof block != 'undefined'){
+              resolve(block); 
+          }else{
+              reject(Error("No block with this hash"))
+          }          
+        } catch (err) {
+          reject(new Error(err));
+        }
+
+    });
+}
 
   /**
    * This method will return a Promise that will resolve with the Block object
@@ -153,11 +191,25 @@ class Blockchain {
    * Remember the star should be returned decoded.
    * @param {*} address
    */
-  getStarsByWalletAddress(address) {
-    let self = this;
-    let stars = [];
-    return new Promise((resolve, reject) => {});
-  }
+   getStarsByWalletAddress(address) {
+    let self = this;                            
+    let stars = [];                             
+    return new Promise((resolve, reject) => {
+      try{
+        self.chain.forEach(async(b)=> {        
+          let data = await b.getBData();        
+          if(data){
+              if(data.owner === address){       
+                stars.push(data);               
+              }
+          }
+      })
+     resolve(stars);  
+      } catch(err){
+        new Error(err);
+      }     
+    });
+}
 
   /**
    * This method will return a Promise that will resolve with the list of errors when validating the chain.
@@ -165,11 +217,35 @@ class Blockchain {
    * 1. You should validate each block using `validateBlock`
    * 2. Each Block should check the with the previousBlockHash
    */
-  validateChain() {
+   validateChain() {
     let self = this;
     let errorLog = [];
-    return new Promise(async (resolve, reject) => {});
-  }
+    return new Promise((resolve) => {
+        let validatePromises = [];
+        self.chain.forEach((block, i) => {
+            if (block.height > 0) {
+                const previousBlock = self.chain[i - 1];
+                if (block.previousBlockHash !== previousBlock.hash) {
+                    const errorMessage = `Block ${i} previousBlockHash set to ${block.previousBlockHash}, but actual previous block hash was ${previousBlock.hash}`;
+                    errorLog.push(errorMessage);
+                }
+            }
+            validatePromises.push(block.validate());
+        });
+        Promise.all(validatePromises)
+            .then(validatedBlocks => {
+                validatedBlocks.forEach((valid, i) => {
+                    if (!valid) {
+                        const invalidBlock = self.chain[i];
+                        const errorMessage = `Block ${i} hash (${invalidBlock.hash}) is invalid`;
+                        errorLog.push(errorMessage);
+                    }
+                });
+
+                resolve(errorLog);
+            });
+    });
+}
 }
 
 module.exports.Blockchain = Blockchain;   
