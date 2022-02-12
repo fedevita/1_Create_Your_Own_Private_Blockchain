@@ -129,18 +129,18 @@ class Blockchain {
       try{
         let temps = parseInt(message.split(":")[1]); 
         let currentTime = parseInt(new Date().getTime().toString().slice(0, -3));
-        if (currentTime - temps < 5 * 60 *1000) {
+        if (currentTime - temps < 5 * 60) {
           if (bitcoinMessage.verify(message, address, signature)) {
-            let block = new BlockClass.Block({ owner: address, star: star }); 
-            self._addBlock(block); 
-            resolve(block); 
+            let block = new BlockClass.Block({ owner: address, star: star });
+            self._addBlock(block);
+            resolve(block);
           } else {
-            console.debug("Message is not verified")
-            reject(Error("Message is not verified")); 
+            console.debug("Message is not verified");
+            reject(Error("Message is not verified"));
           }
         } else {
-          console.debug("too much time has passed, stay below 5 minutes")
-          reject(Error("too much time has passed, stay below 5 minutes")); 
+          console.debug("too much time has passed, stay below 5 minutes");
+          reject(Error("too much time has passed, stay below 5 minutes"));
         }
       } catch (err){
         console.log(err)
